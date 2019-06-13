@@ -26,11 +26,11 @@ reg [2:0] operation; // 0 - noop, 1 -, 2 +, 3 *, 4 /
 reg [7:0] last_num;
 
 reg s_push_stb;
-reg s_push_dat;
+reg [7:0] s_push_dat;
 wire s_push_ack;
 
 wire s_pop_stb;
-reg s_pop_dat;
+wire [7:0] s_pop_dat;
 reg s_pop_ack;
 
 stack stk
@@ -54,33 +54,36 @@ always@(posedge CLK or posedge RST) begin
         s_push_stb <= 0;
         s_pop_ack <= 0;
     end
-    else begin
-    if (operation) begin
+    else if (operation) begin
         IN_ACK <= 0;
         OUT_STB <= 0;
         casex(operation)
             1: begin // add
                  s_push_stb <= 1;
                  s_pop_ack <= 1;
-                 s_push_dat <= last_num + s_pop_dat;
+                 s_push_dat <= 
+                 8'h30 + ((last_num - 8'h30) + (s_pop_dat - 8'h30));
                  operation <= 0;
             end
             2: begin // sub
                  s_push_stb <= 1;
                  s_pop_ack <= 1;
-                 s_push_dat <= last_num - s_pop_dat;
+                 s_push_dat <=
+                 8'h30 + ((last_num - 8'h30) - (s_pop_dat - 8'h30));
                  operation <= 0;
             end
             3: begin // mul
                  s_push_stb <= 1;
                  s_pop_ack <= 1;
-                 s_push_dat <= last_num * s_pop_dat;
+                 s_push_dat <=
+                 8'h30 + ((last_num - 8'h30) * (s_pop_dat - 8'h30));
                  operation <= 0;
             end
             4: begin // div
                  s_push_stb <= 1;
                  s_pop_ack <= 1;
-                 s_push_dat <= last_num / s_pop_dat;
+                 s_push_dat <= 
+                 8'h30 + ((last_num - 8'h30) / (s_pop_dat - 8'h30));
                  operation <= 0;
             end
         endcase
@@ -88,7 +91,7 @@ always@(posedge CLK or posedge RST) begin
     // brackets
     else if (IN_STB) begin
         // numbers
-        else if (IN_CHAR >= `NUM_0 && IN_CHAR <= (`NUM_0 + 10)) begin
+        if (IN_CHAR >= `NUM_0 && IN_CHAR <= (`NUM_0 + 10)) begin
             s_push_stb <= 1;
             s_pop_ack <= 0;
             s_push_dat <= IN_CHAR;
@@ -142,4 +145,5 @@ always@(posedge CLK or posedge RST) begin
         end
     end
 end
+
 endmodule

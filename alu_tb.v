@@ -28,6 +28,14 @@ initial begin
     
     # 10    reset = 1;
     # 10    reset = 0;
+    # 10    in_stb <= 1; in_char <= 8'h32;
+    # 10    in_stb <= 0; in_char <= 8'h32;
+    # 10 if (in_ack) in_stb <= 1; in_char <= `PLUS_SGN;
+    # 10    in_stb <= 0;
+    # 10 if (in_ack) in_stb <= 1; in_char <= 8'h31;
+    # 10    in_stb <= 0;
+    # 10    in_stb <= 1; in_char <= `EQU_SGN;
+    # 10    in_stb <= 0;
     # 10    $stop;
 end
 
@@ -36,7 +44,7 @@ reg [7:0] test;
 always@(posedge clk)
     if (out_stb) test <= out_char;
 
-stack stk1
+alu alu1
 (
 clk,
 reset,
