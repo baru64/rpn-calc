@@ -6,6 +6,7 @@
 `define PLUS_SGN 8'h2b
 `define MUL_SGN 8'h2a
 `define DIV_SGN 8'h2f
+`define EQU_SGN 8'h3d
 
 module onp
 (
@@ -21,9 +22,11 @@ module onp
     input   wire        OUT_ACK  // output taken
 );
 
-reg [3:0] nest_lvl; // bracket counter
+//reg [3:0] nest_lvl; // bracket counter
+reg bracket_block;
 reg [3:0] on_stack; // stack size
 reg first_char;
+reg take_more;
 
 reg s_push_stb;
 reg s_push_dat;
@@ -52,21 +55,27 @@ always@(CLK or RST) begin
     if (RST) begin
         IN_ACK <= 0;
         OUT_STB <= 0;
-        nest_lvl <= 4'h0;
+        bracket_block <= 0;
         on_stack <= 4'h0;
         first_char <= 1;
+        take_more <= 0;
     end
     // if something on stack to pop
-    else if (on_stack > nest_lvl) begin
+    else if (take_more) begin
+        s_pop_ack <= 1;
+        OUT_CHAR <= s_pop_dat;
+        OUT_STB <= 1;
+        IN_ACK <= 0;
+        take_more <= 0;
     end
     // brackets
-    else if (OUT_ACK && IN_STB) begin // if last char has been read and input ready
+    else if ((OUT_ACK || first_char) && IN_STB) begin // if last char has been read and input ready
+        if (first_char) first_char <= 0;
         if (IN_CHAR == `BRACKET_OPEN) begin
-            nest_lvl <= nest_lvl + 1;
+            bracket_block <= 1;
         end
         else if (IN_CHAR == `BRACKET_CLOSE) begin
             s_pop_ack <= 1;
-            nest_lvl <= nest_lvl - 1;
             OUT_CHAR <= s_pop_dat;
             OUT_STB <= 1;
             IN_ACK <= 1;
@@ -80,11 +89,27 @@ always@(CLK or RST) begin
         else if (IN_CHAR == `MINUS_SGN && IN_CHAR == `PLUS_SGN) begin
             s_push_stb <= 1;
             s_push_dat <= IN_CHAR;
-            if (
+            if (s_pop_stb && !bracket_block) begin
+                OUT_CHAR <= s_pop_dat;
+                OUT_STB <= 1;
+                bracket_block <= 0;
+            end else OUT_STB <= 0;
         end
         // */ signs
         else if (IN_CHAR == `MUL_SGN && IN_CHAR == `DIV_SGN) begin
-            
+            s_push_stb <= 1;
+            s_push_dat <= IN_CHAR;
+            take_more <= 1;
+            OUT_STB <= 0;
+        end 
+        else if (IN_CHAR == `EQU_SGN) begin
+            s_pop_ack <= 1;
+            OUT_CHAR <= s_pop_dat;
+            OUT_STB <= 1;
+            s_push_stb <= 1;
+            s_push_dat <= IN_CHAR;
+            take_more <= 1;
+            first_char <= 1;
         end
     end
 end
