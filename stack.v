@@ -14,7 +14,7 @@ module stack
 
     reg [3:0]       sp; // stack top pointer
     reg [7:0]       mem [0:15];
-    integer         stack_state;
+    reg [1:0]       stack_state;
     
     always@(posedge CLK or posedge RST)
         if(RST) begin
@@ -26,6 +26,12 @@ module stack
         else casex(stack_state)
 //////// empty
         0: begin
+//            if (PUSH_STB && POP_ACK) begin
+//               PUSH_ACK     <= 1'h1;
+//               POP_STB      <= 1'h0;
+//               stack_state  <= 1;
+//               sp           <= sp ;
+//            end
             if(PUSH_STB) begin
                 PUSH_ACK    <= 1'h1;
                 POP_STB     <= 1'h1;
@@ -50,8 +56,8 @@ module stack
             end
             else if (POP_ACK) begin
                PUSH_ACK     <= 1'h0;
-               POP_STB      <= (sp >= 4'h1)? 1 : 0;
-               stack_state  <= (sp >= 4'h1)? 1 : 0; 
+               POP_STB      <= (sp > 4'h1)? 1 : 0;
+               stack_state  <= (sp > 4'h1)? 1 : 0; 
                //sp           <= (sp >= 4'h1)? sp - 4'h1 : sp;
                sp           <= sp - 4'h1;
             end
@@ -82,7 +88,8 @@ module stack
     always@(negedge CLK) $display("mem[%d]=%d", sp, mem[sp]);
 
     always@(posedge CLK) begin 
-        if (PUSH_STB && stack_state != 2) mem[sp] <= PUSH_DAT;
+        if (PUSH_STB && POP_ACK && stack_state != 0) mem[sp - 1] <= PUSH_DAT;
+        else if (PUSH_STB && stack_state != 2) mem[sp] <= PUSH_DAT;
     end
 
     assign      POP_DAT = mem [(sp)? sp - 4'h1 : 4'hF];
