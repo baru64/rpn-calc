@@ -29,11 +29,11 @@ reg first_char;
 reg take_more;
 
 reg s_push_stb;
-reg s_push_dat;
+reg [7:0] s_push_dat;
 wire s_push_ack;
 
 wire s_pop_stb;
-reg s_pop_dat;
+wire [7:0] s_pop_dat;
 reg s_pop_ack;
 
 stack stk
@@ -51,7 +51,7 @@ s_pop_ack
 );
 
 // oddzielić datapath(in_char, out_char) od control(stb,ack)?
-always@(CLK or RST) begin
+always@(posedge CLK or posedge RST) begin
     if (RST) begin
         IN_ACK <= 0;
         OUT_STB <= 0;
@@ -61,9 +61,11 @@ always@(CLK or RST) begin
         take_more <= 0;
         s_pop_ack <= 0;
         s_push_stb <= 0;
+        s_push_dat <= 0;
     end
     // if something on stack to pop
     else if (take_more) begin
+        if (IN_ACK) IN_ACK <= 0;
         s_pop_ack <= 1;
         s_push_stb <= 0;
         OUT_CHAR <= s_pop_dat;
@@ -73,6 +75,7 @@ always@(CLK or RST) begin
     end
     // brackets
     else if ((OUT_ACK || first_char) && IN_STB) begin // if last char has been read and input ready
+        if (IN_ACK) IN_ACK <= 0;
         if (first_char) first_char <= 0;
         if (IN_CHAR == `BRACKET_OPEN) begin
             s_pop_ack <= 0;
@@ -97,7 +100,7 @@ always@(CLK or RST) begin
             IN_ACK <= 1;
         end
         // +- signs
-        else if (IN_CHAR == `MINUS_SGN && IN_CHAR == `PLUS_SGN) begin
+        else if (IN_CHAR == `MINUS_SGN || IN_CHAR == `PLUS_SGN) begin
             s_push_stb <= 1;
             s_push_dat <= IN_CHAR;
             IN_ACK <= 1;
@@ -112,7 +115,7 @@ always@(CLK or RST) begin
             end
         end
         // */ signs
-        else if (IN_CHAR == `MUL_SGN && IN_CHAR == `DIV_SGN) begin
+        else if (IN_CHAR == `MUL_SGN || IN_CHAR == `DIV_SGN) begin
             s_push_stb <= 1;
             s_pop_ack <= 0;
             s_push_dat <= IN_CHAR;
@@ -130,7 +133,7 @@ always@(CLK or RST) begin
             take_more <= 1;
             first_char <= 1;
         end
-    end
+    end else if (IN_ACK) IN_ACK <= 0;
 end
 
 endmodule
