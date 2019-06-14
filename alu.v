@@ -52,10 +52,13 @@ always@(posedge CLK or posedge RST) begin
     if (RST) begin
         IN_ACK <= 0;
         OUT_STB <= 0;
+        OUT_CHAR <= 0;
+        last_num <= 0;
         s_push_stb <= 0;
         s_pop_ack <= 0;
         op_wait <= 0;
     end
+    if (IN_ACK) IN_ACK <= 0;
     else if (op_wait) begin
         op_wait <= 0;
         IN_ACK <= 0;
@@ -107,6 +110,7 @@ always@(posedge CLK or posedge RST) begin
     else if (IN_STB) begin
         // numbers
         if (IN_CHAR >= `NUM_0 && IN_CHAR <= (`NUM_0 + 10)) begin
+            $display("########### dostalem: %h", IN_CHAR);
             s_push_stb <= 1;
             s_pop_ack <= 0;
             s_push_dat <= IN_CHAR;
@@ -116,6 +120,7 @@ always@(posedge CLK or posedge RST) begin
         end
         // + sign
         else if (IN_CHAR == `PLUS_SGN) begin
+            $display("## +");
             s_push_stb <= 0;
             s_pop_ack <= 1;
             last_num <= s_pop_dat;
@@ -163,7 +168,9 @@ always@(posedge CLK or posedge RST) begin
             IN_ACK <= 1;
             OUT_STB <= 1;
         end
-    end else if (!IN_STB && s_push_stb) s_push_stb <= 0;
+    end
+    else if (!IN_STB && s_push_stb) s_push_stb <= 0;
+    else if (!IN_STB && IN_ACK) IN_ACK <= 0;
 end
 
 endmodule
