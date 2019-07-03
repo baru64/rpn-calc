@@ -50,7 +50,6 @@ s_pop_dat,
 s_pop_ack
 );
 
-// oddzielić datapath(in_char, out_char) od control(stb,ack)?
 always@(posedge CLK or posedge RST) begin
     if (RST) begin
         IN_ACK <= 0;
@@ -123,6 +122,7 @@ always@(posedge CLK or posedge RST) begin
             IN_ACK <= 1;
             OUT_STB <= 0;
         end 
+        // = sign
         else if (IN_CHAR == `EQU_SGN) begin
             s_pop_ack <= 1;
             OUT_CHAR <= s_pop_dat;
@@ -133,7 +133,12 @@ always@(posedge CLK or posedge RST) begin
             take_more <= 1;
             first_char <= 1;
         end
-    end else if (IN_ACK) IN_ACK <= 0;
+    end else begin // no input, nothing to take from stack
+        if (IN_ACK) IN_ACK <= 0;
+        s_push_stb  <= 0;
+        s_pop_ack   <= 0;
+        if (s_pop_dat == `EQU_SGN) OUT_CHAR <= `EQU_SGN;
+    end
 end
 
 endmodule
