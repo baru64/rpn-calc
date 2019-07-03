@@ -1,6 +1,10 @@
 IVERILOG = iverilog
 VVP = vvp
+<<<<<<< HEAD
 module = onp
+=======
+module = alu
+>>>>>>> alu-dev
 
 default:
 	@echo "-- COMPILATION -------------"
